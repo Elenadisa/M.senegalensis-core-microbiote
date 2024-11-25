@@ -1,0 +1,371 @@
+---
+title: "Senegal (Understory vs Gap) Analysis 16S"
+author: "Elena D. Díaz Santiago"
+date: "2024-10-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      warning = FALSE,
+                      comment = "",
+                      eval=  TRUE,
+                      include = TRUE)
+
+```
+
+```{r }
+library(phyloseq)
+library(vegan)
+library(pairwiseAdonis)
+library(microbiome)
+library(microbiomeMarker)
+library(qiime2R)
+library(ggplot2)
+library(ggpubr)
+library(ggVennDiagram)
+library(gridExtra) 
+library(kableExtra)
+library(dplyr)
+library(magrittr)
+library(DESeq2)
+library(metagenomeSeq)
+library(microeco)
+library(file2meco)
+library(NetCoMi)
+library(Wrench)
+library(plotly)
+
+```
+
+```{r echo=FALSE}
+#load own functions
+source("C:/Users/elenad/Documents/proyectos/scripts/functions.R")
+```
+
+In this analysis we want to analyse the differences in microbiota composition between Understory and Gap soil conditions in Senegal.
+
+
+# Load Data
+  
+The sequences were analyse with QIIME2 software. We are going to load the different datasets with the help of qiime2R package and build a phyloseq object. To this end we need:  
+- Feature table  
+- Taxonomy table  
+- Rooted tree file  
+- Metadata file  
+
+```{r }
+physeq <-qza_to_phyloseq(features="taxonomy/trimmed1/final_FeatureTable.qza", 
+                         tree="phylogeny/trimmed1/rooted-tree.qza", 
+                         taxonomy="taxonomy/trimmed1/taxonomy.qza", 
+                         metadata="metadata.txt")
+```
+
+## Obtain Senegal data
+  
+The first step include remove control samples:
+  
+```{r RemoveControl}
+physeq@sam_data$SampleID <- row.names(physeq@sam_data)
+#remove mock sample
+physeq_wo_mock <- subset_samples(physeq, !SampleID %in% c("MockZymo41", "KitControl40"))
+#remove ASVs which the abundance == 1
+physeq.clean <- prune_taxa(taxa_sums(physeq_wo_mock) > 1, physeq_wo_mock)
+```
+  
+Then, we obtain only Senegal samples:  
+  
+```{r ObtainSenegalSamples}
+ps.senegal <- subset_samples(physeq.clean, Site == "Senegal")
+#remove ASVs with a total abundance 1 in all samples
+physeq.senegal.clean <- prune_taxa(taxa_sums(ps.senegal) > 1, ps.senegal)
+
+```
+
+## Normalization
+
+Generally, sequencing data sets are not of the same size. So, to make relatively fair comparisons between sets, we need to normalize the counts. It is necessary to prepare the data in a way that improves the comparability of the samples (e.g. differential abundance). There are different methods to perform normalization, but in this case we are using Cumultive Sum Scaling with microbiomeMarker package.
+
+```{r PhyloseqNormalizarion}
+#cumulative sum scaling
+physeq.css <- normalize(physeq.senegal.clean, "CSS")
+```
+
+# Analysis of the Taxa within 100% of the samples 
+
+We want to analyse the Phyla and Genera which are withing all the samples.
+
+## Count the number of Taxa per experimental conditions
+
+
+**At Genus level:**
+
+```{r GenusAllSamples}
+#aglomerate ASVs at genus evel
+ps.genus <- tax_glom(physeq.css, taxrank="Genus")
+#remove Genus not in all samples
+ps.genus.all_samples <- prune_taxa(rowSums(otu_table(ps.genus) != 0) == ncol(otu_table(ps.genus)), ps.genus)
+genus_l <- get_taxa_unique(ps.genus.all_samples, taxonomic.rank="Genus")
+#Obtain all the genera
+genus_l <- get_taxa_unique(ps.genus.all_samples, taxonomic.rank="Genus")
+#remove unasigned genera
+genus_to_remove <- c(NA, "uncultured")
+genus_l <- genus_l[!genus_l %in% genus_to_remove]
+ps.genus.all <- subset_taxa(ps.genus.all_samples, Genus %in% genus_l)
+
+genus_df.all <- psmelt(ps.genus.all)
+
+#Remove abundance 0
+genus_df.all <- genus_df.all[!genus_df.all$Abundance == 0,] 
+genus_sumarize.all <- genus_df.all %>%  group_by(INorOUT, Genus) %>% 
+  summarise(Abundance=mean(Abundance, na.rm=TRUE), sd=sd(Abundance, na.rm=TRUE))
+
+#Print number of Genera
+cat("Genera Number= ", length(unique(genus_df.all$Genus)))
+
+```
+
+**At Phylum level:**
+
+```{r PhylumAllSamples}
+#agglomerate taxonomic results to Phylum level
+ps.phylum <- tax_glom(physeq.css, taxrank="Phylum")
+ps.phylum.all <- prune_taxa(rowSums(otu_table(ps.genus) != 0) == ncol(otu_table(ps.genus)), ps.genus)
+phylum_df.all <- psmelt(ps.phylum.all)
+
+#Remove abundance 0
+phylum_df.all <- phylum_df.all[!phylum_df.all$Abundance == 0,]
+phylum_sumarize.all <- phylum_df.all %>%  group_by(INorOUT, Phylum) %>% 
+  summarise(Abundance=mean(Abundance, na.rm=TRUE), sd=sd(Abundance, na.rm=TRUE))
+
+
+cat("Phyla Number= ", length(unique(phylum_df.all$Phylum)))
+```
+
+## Composition barplots 
+
+### Heatmap Abundance per sample
+
+With this plot we want to see the microbial composition in all samples and ensure that the ASVs are within all samples In each  experiment group. Moreover, we can see if there is any difference in the abundance of the ASVs in the different experimental conditions.
+
+**At Phylum level**
+
+```{r AbundancePerSampleHeatmapPhylymAllSamples, fig.cap="Heatmap comparing abundance of phyla across experimental groups. Color gradients representing the abundance. Each row corresponds to a phylum, while each column represents a sample grouped by experimental condition."}
+
+ggplotly(plot_abundance_heatmap(phylum_df.all, "Abundance", "Phylum", "Sample") + facet_wrap(~INorOUT, scales = "free_x"))
+```
+
+**At Genus level**
+
+```{r AbundancePerSampleHeatmapGenusAllSamples, fig.height = 8, fig.cap="Heatmap comparing abundance of genera across experimental groups. Color gradients representing the abundance. Each row corresponds to a genus, while each column represents a sample grouped by experimental condition."}
+
+ggplotly(plot_abundance_heatmap(genus_df.all, "Abundance", "Genus", "Sample") + facet_wrap(~INorOUT, scales = "free_x"))
+```
+
+### Heatmap Abundance per experimental condition
+
+With this plot we want to see the differences in the abundance of the taxa in the different experiment group.
+
+**At Phylum level**
+
+```{r AbundanceHeatmapPhylymINOUT, fig.cap="Heatmap comparing abundance of phyla across experimental groups. Color gradients representing the abundance. Each row corresponds to a phylum, while each column represents an experimental group, facilitating the comparison of phylum distribution and abundance patterns across groups."}
+
+ggplotly(plot_abundance_heatmap(phylum_sumarize.all, "Abundance", "Phylum", "INorOUT"))
+```
+
+**At Genus level**
+
+```{r AbundanceHeatmapGenusINOUT, fig.height = 8, fig.cap="Heatmap comparing abundance of genera across experimental groups. Color gradients representing the abundance. Each row corresponds to a Genus, while each column represents an experimental group, facilitating the comparison of genus distribution and abundance patterns across groups."}
+
+ggplotly(plot_abundance_heatmap(genus_sumarize.all, "Abundance", "Genus", "INorOUT"))
+```
+
+## Differential Abundance  
+  
+To see if there are significant differences in the abundance of the genera in both conditions, we have performed a Differential abundance analysis. Due there are a lot of algorithms to do this analysis and we can obtain different results depending on the chosen algorithm, we have performed an analysis using two different approaches. DESeq2, an RNA-seq method, and LefSE, a method developed for metagenomic analyses.
+  
+### DESEq2
+  
+DESeq2 is both tools which assume that read counts follow a negative binomial distribution. To identify differentially abundant taxa, a null and alternative hypothesis are compared for each taxon. The null hypothesis states that the same setting for certain parameters of the negative binomial solution explain the distribution of taxa across all sample groupings. The alternative hypothesis states that different parameter settings are needed to account for differences between sample groupings. If the null hypothesis can be rejected for a specific taxon, then it is considered differentially abundant (*Nearing et al. 2022* - https://www.nature.com/articles/s41467-022-28034-z).
+  
+```{r DESeqAll}
+#items to compare
+contrast <- c("INorOUT","Understory", "Gap")
+#P.adjust threshold
+alpha <- 0.05 
+
+#create DESeq2 object
+ds.all <- phyloseq_to_deseq2(ps.genus.all, ~ INorOUT)
+
+diagdds.all <-  DESeq(ds.all, 
+                  test="Wald", 
+                  fitType="parametric", 
+                  sfType = 'poscounts')
+
+res.all <- results(diagdds.all, cooksCutoff = F,
+               contrast = contrast )
+sigtab.all <- res.all[which(res.all$padj < alpha), ]
+sigtab.all <- cbind(as(sigtab.all, "data.frame"), as(tax_table(ps.genus.all)[rownames(sigtab.all), ], "matrix"))
+
+daa_bar_plot(sigtab.all, contrast, " ")
+
+```
+
+A positive log2 fold change for a comparison of A vs B means that gene expression in A is larger in comparison to B.  
+"For a particular gene, a log2 fold change of −1 for condition treated vs untreated means that the treatment induces a change in observed expression level of 2^−1 = 0.5 compared to the untreated condition."  This mean, that positive log2 fold change means that the genus is more abundant under Understory condition, whereas, negative log2 fold change means that the genus is more abundant under Gap condition.
+
+If we analyse the genera that are within all the samples in Senegal (see supplementary file II), Steroidobacter, Pir4_lineage, Nitrospira, and MND1 are significantly more abundant in Understory condition, whereas, Microvirga and Ramlibacter are significantly more abundant in Gap condition.  
+  
+### Linear discriminant analysis effect size (LEFSe)
+
+LEfSe is one of the most popular approach for microbiome biomarker discovery. Notice that, LEfSe’s do not to correct significance values for false discovery or Wilcoxon (CLR)’s inability to consider differences in sequencing depth between metadata groupings.
+  
+```{r LEfSeAll}
+#norm == none because the data where normalized with CSS at the begining of the workflow
+lefse.all <- run_lefse(
+    ps.genus.all,
+    norm = "none",
+    taxa_rank = "Genus",
+    wilcoxon_cutoff = 0.05,
+    group = "INorOUT",
+    kw_cutoff = 0.05,
+    lda_cutoff = 2
+)
+
+if(is.null(lefse.all@marker_table)){
+  cat("No microbiome markers were identified")
+}else{
+  lefse_lda_plot(lefse.all@marker_table, " ")
+}
+  
+
+```
+
+LEfSe only found Microvirga Genus as significantly more abundant under Gap condition.  
+
+# Analysis of the Taxa within all samples except 1   
+
+We want to analyse the Genera which are withing all the samples except one.
+
+## Count the number of Taxa per experimental conditions
+
+
+**At Genus level:**
+
+```{r Genus-1Samples}
+#remove Genus not in all samples
+ps.genus.90_samples <- prune_taxa(rowSums(otu_table(ps.genus) != 0) >= ncol(otu_table(ps.genus)) - 1, ps.genus)
+genus_l <- get_taxa_unique(ps.genus.90_samples, taxonomic.rank="Genus")
+#Obtain all the genera
+genus_l <- get_taxa_unique(ps.genus.90_samples, taxonomic.rank="Genus")
+#remove unasigned genera
+genus_to_remove <- c(NA, "uncultured")
+genus_l <- genus_l[!genus_l %in% genus_to_remove]
+ps.genus.90 <- subset_taxa(ps.genus.90_samples, Genus %in% genus_l)
+
+genus_df.90 <- psmelt(ps.genus.90)
+
+#Remove abundance 0
+genus_df.90 <- genus_df.90[!genus_df.90$Abundance == 0,] 
+genus_sumarize.90 <- genus_df.90 %>%  group_by(INorOUT, Genus) %>% 
+  summarise(Abundance=mean(Abundance, na.rm=TRUE), sd=sd(Abundance, na.rm=TRUE))
+
+#Print number of Genera
+cat("Genera Number= ", length(unique(genus_df.90$Genus)))
+
+```
+
+## Composition barplots 
+
+
+### Heatmap Abundance per sample
+
+With this plot we want to see the microbial composition in all samples except 1 and ensure that the ASVs are within samples en each  experiment group. Moreover, we can see if there is any difference in the abundance of the ASVs in the different experimental conditions.
+
+**At Genus level**
+
+```{r AbundancePerSampleHeatmapGenus-1Samples, fig.height=8, fig.cap="Heatmap comparing abundance of genera across experimental groups. Color gradients representing the abundance. Each row corresponds to a genus, while each column represents a sample grouped by experimental condition."}
+
+ggplotly(plot_abundance_heatmap(genus_df.90, "Abundance", "Genus", "Sample") + facet_wrap(~INorOUT, scales = "free_x"))
+```
+
+### Heatmap Abundance per experimental condition
+
+With this plot we want to see the differences in the abundance of the taxa in the different experiment group.
+
+**At Genus level**
+
+```{r AbundanceHeatmapGenus-1Samples, fig.height=8, fig.cap="Heatmap comparing relative abundance of genera across experimental groups.Color gradients representing the abundance. Each row corresponds to a Genus, while each column represents an experimental group, facilitating the comparison of genus distribution and abundance patterns across groups."}
+
+ggplotly(plot_abundance_heatmap(genus_sumarize.90, "Abundance", "Genus", "INorOUT"))
+```
+
+
+## Differential Abundance  
+  
+To see if there are significant differences in the abundance of the genera in both conditions, we have performed a Differential abundance analysis. Due there are a lot of algorithms to do this analysis and we can obtain different results depending on the chosen algorithm, we have performed an analysis using two different approaches. DESeq2, an RNA-seq method, and LefSE, a method developed for metagenomic analyses.
+  
+### DESEq2
+  
+DESeq2 is both tools which assume that read counts follow a negative binomial distribution. To identify differentially abundant taxa, a null and alternative hypothesis are compared for each taxon. The null hypothesis states that the same setting for certain parameters of the negative binomial solution explain the distribution of taxa across all sample groupings. The alternative hypothesis states that different parameter settings are needed to account for differences between sample groupings. If the null hypothesis can be rejected for a specific taxon, then it is considered differentially abundant (*Nearing et al. 2022* - https://www.nature.com/articles/s41467-022-28034-z).
+  
+```{r DESeq90}
+#items to compare
+contrast <- c("INorOUT","Understory", "Gap")
+#P.adjust threshold
+alpha <- 0.05 
+
+#create DESeq2 object
+ds.90 <- phyloseq_to_deseq2(ps.genus.90, ~ INorOUT)
+
+diagdds.90 <-  DESeq(ds.90, 
+                  test="Wald", 
+                  fitType="parametric", 
+                  sfType = 'poscounts')
+
+res.90 <- results(diagdds.90, cooksCutoff = F,
+               contrast = contrast )
+sigtab.90 <- res.90[which(res.90$padj < alpha), ]
+sigtab.90 <- cbind(as(sigtab.90, "data.frame"), as(tax_table(ps.genus.90)[rownames(sigtab.90), ], "matrix"))
+
+if(is.null(sigtab.90 == 0)){
+  cat("No microbiome markers were identified")
+}else{
+  daa_bar_plot(sigtab.90, contrast, " ")
+}
+
+```
+
+A positive log2 fold change for a comparison of A vs B means that gene expression in A is larger in comparison to B.  
+"For a particular gene, a log2 fold change of −1 for condition treated vs untreated means that the treatment induces a change in observed expression level of 2^−1 = 0.5 compared to the untreated condition."  This mean, that positive log2 fold change means that the genus is more abundant under  Understory condition, whereas, negative log2 fold change means that the genus is more abundant under Gap condition.
+
+If we analyse the genera that are within all the samples in Spain and Senegal under the tree (see supplementary file II), Nitrospira, Pir4_lineage, MND1, bacteriap25, and Acidibacter are significantly more abundant in Understory condition, whereas, Microvirga, Ramlibacter, Geodermatophilus and Flavisolibacter are significantly more abundant under Gap condition. 
+
+
+### Linear discriminant analysis effect size (LEFSe)
+
+LEfSe is one of the most popular approach for microbiome biomarker discovery. Notice that, LEfSe’s do not to correct significance values for false discovery or Wilcoxon (CLR)’s inability to consider differences in sequencing depth between metadata groupings.
+  
+```{r LEfSe90}
+#norm == none because the data where normalized with CSS at the begining of the workflow
+lefse.90 <- run_lefse(
+    ps.genus.90,
+    norm = "none",
+    taxa_rank = "Genus",
+    wilcoxon_cutoff = 0.05,
+    group = "INorOUT",
+    kw_cutoff = 0.05,
+    lda_cutoff = 2
+)
+
+if (is.null(lefse.90@marker_table)){
+  cat("No microbiome markers were identified")
+}else{
+  lefse_lda_plot(lefse.90@marker_table, " ")
+}
+  
+
+```
+
+We have obtained the same results than in the first approach.  

@@ -1,0 +1,265 @@
+---
+title: "senegal vs Spain Understory Analysis 16S"
+author: "Elena D. Díaz Santiago"
+date: "2024-10-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      warning = FALSE,
+                      comment = "",
+                      eval=  TRUE,
+                      include = TRUE)
+
+```
+
+```{r }
+library(phyloseq)
+library(vegan)
+library(pairwiseAdonis)
+library(microbiome)
+library(microbiomeMarker)
+library(qiime2R)
+library(ggplot2)
+library(ggpubr)
+library(ggVennDiagram)
+library(gridExtra) 
+library(kableExtra)
+library(dplyr)
+library(magrittr)
+library(DESeq2)
+library(metagenomeSeq)
+library(microeco)
+library(file2meco)
+library(NetCoMi)
+library(Wrench)
+library(plotly)
+
+```
+
+```{r echo=FALSE}
+#load own functions
+source("C:/Users/elenad/Documents/proyectos/scripts/functions.R")
+```
+
+In this analysis we want to analyse similarities between Senegal and Spain Understory condition in order to test co-evolution hypothesis.  
+
+
+# Load Data
+  
+The sequences were analyse with QIIME2 software. We are going to load the different datasets with the help of qiime2R package and build a phyloseq object. To this end we need:  
+- Feature table  
+- Taxonomy table  
+- Rooted tree file  
+- Metadata file  
+
+```{r }
+physeq <-qza_to_phyloseq(features="taxonomy/trimmed1/final_FeatureTable.qza", 
+                         tree="phylogeny/trimmed1/rooted-tree.qza", 
+                         taxonomy="taxonomy/trimmed1/taxonomy.qza", 
+                         metadata="metadata.txt")
+```
+
+## Obtain Understory data
+  
+The first step include remove control samples:
+  
+```{r RemoveControl}
+physeq@sam_data$SampleID <- row.names(physeq@sam_data)
+#remove mock sample
+physeq_wo_mock <- subset_samples(physeq, !SampleID %in% c("MockZymo41", "KitControl40"))
+#remove ASVs which the abundance == 1
+physeq.clean <- prune_taxa(taxa_sums(physeq_wo_mock) > 1, physeq_wo_mock)
+```
+  
+Then, we obtain only Spain samples:  
+  
+```{r ObtainSpainSamples}
+ps.in <- subset_samples(physeq.clean, INorOUT == "Understory")
+#remove ASVs with a total abundance 1 in all samples
+physeq.in.clean <- prune_taxa(taxa_sums(ps.in) > 1, ps.in)
+
+```
+
+
+## Normalization
+
+Generally, sequencing data sets are not of the same size. So, to make relatively fair comparisons, we need to normalize the counts. It is necessary to prepare the data in a way that improves the comparability of the samples. There are different methods to perform normalization, but in this case we are using Cumultive Sum Scaling with microbiomeMarker.
+
+```{r PhyloseqNormalizarion}
+#cumulative sum scaling
+physeq.css <- normalize(physeq.in.clean, "CSS")
+```
+
+# Analysis of the Taxa within 100% of the samples 
+
+We want to analyse the Phyla and Genera which are withing all the samples in Understory condition (both Senegal and Spain).
+
+## Count the number of Taxa per experimental conditions
+
+**At Genus level:**
+
+```{r GenusAllSamples}
+#aglomerate ASVs at genus evel
+ps.genus <- tax_glom(physeq.css, taxrank="Genus")
+#remove Genus not in all samples
+ps.genus.all_samples <- prune_taxa(rowSums(otu_table(ps.genus) != 0) == ncol(otu_table(ps.genus)), ps.genus)
+genus_l <- get_taxa_unique(ps.genus.all_samples, taxonomic.rank="Genus")
+#Obtain all the genera
+genus_l <- get_taxa_unique(ps.genus.all_samples, taxonomic.rank="Genus")
+#remove unasigned genera
+genus_to_remove <- c(NA, "uncultured")
+genus_l <- genus_l[!genus_l %in% genus_to_remove]
+ps.genus.all <- subset_taxa(ps.genus.all_samples, Genus %in% genus_l)
+
+genus_df.all <- psmelt(ps.genus.all)
+
+#Remove abundance 0
+genus_df.all <- genus_df.all[!genus_df.all$Abundance == 0,] 
+genus_sumarize.all <- genus_df.all %>%  group_by(Site, Genus) %>% 
+  summarise(Abundance=mean(Abundance, na.rm=TRUE), sd=sd(Abundance, na.rm=TRUE))
+
+#Print number of Genera
+cat("Genera Number= ", length(unique(genus_df.all$Genus)))
+
+```
+
+**At Phylum level:**
+
+```{r PhylumAllSamples}
+#agglomerate taxonomic results to Phylum level
+ps.phylum <- tax_glom(physeq.css, taxrank="Phylum")
+#remove Genus not in all samples
+ps.phylum.all <- prune_taxa(rowSums(otu_table(ps.genus) != 0) == ncol(otu_table(ps.genus)), ps.genus)
+phylum_df.all <- psmelt(ps.phylum.all)
+
+#Remove abundance 0
+phylum_df.all <- phylum_df.all[!phylum_df.all$Abundance == 0,]
+phylum_sumarize.all <- phylum_df.all %>%  group_by(Site, Phylum) %>% 
+  summarise(Abundance=mean(Abundance, na.rm=TRUE), sd=sd(Abundance, na.rm=TRUE))
+
+
+cat("Phyla Number= ", length(unique(phylum_df.all$Phylum)))
+```
+
+## Composition barplots 
+
+### Heatmap Abundance per sample
+
+With this plot we want to see the microbial composition in all samples and ensure that the ASVs are within all samples in each  experiment group. Moreover, we can see if there is any difference in the abundance of the ASVs in the different experimental conditions.
+
+**At Phylum level**
+
+```{r AbundancePerSampleHeatmapPhylymAllSamples, fig.cap="Heatmap comparing the abundance of phyla across experimental groups. Color gradients represents the abundance. Each row corresponds to a phylum, while each column represents a sample grouped by experimental condition."}
+
+ggplotly(plot_abundance_heatmap(phylum_df.all, "Abundance", "Phylum", "Sample") + facet_wrap(~Site, scales = "free_x"))
+```
+
+**At Genus level**
+
+```{r AbundancePerSampleHeatmapGenusAllSamples, fig.cap="Heatmap comparing abundance of genera across experimental groups. Color gradients represents the abundance. Each row corresponds to a genus, while each column represents a sample grouped by experimental condition."}
+
+ggplotly(plot_abundance_heatmap(genus_df.all, "Abundance", "Genus", "Sample") + facet_wrap(~Site, scales = "free_x"))
+```
+
+### Heatmap Abundance per experimental condition
+
+With this plot we want to see the differences in the abundance of the taxa in the different experimental group.
+
+**At Phylum level**
+
+```{r AbundanceHeatmapPhylymINOUT, fig.cap="Heatmap comparing abundance of phyla across experimental groups. Color gradients represents the abundance. Each row corresponds to a phylum, while each column represents an experimental group, facilitating the comparison of phylum distribution and abundance patterns across groups."}
+
+ggplotly(plot_abundance_heatmap(phylum_sumarize.all, "Abundance", "Phylum", "Site"))
+```
+
+**At Genus level**
+
+```{r AbundanceHeatmapGenusINOUT, fig.cap="Heatmap comparing abundance of genera across experimental groups. Color gradients represents the abundance. Each row corresponds to a Genus, while each column represents an experimental group, facilitating the comparison of genus distribution and abundance patterns across groups."}
+
+ggplotly(plot_abundance_heatmap(genus_sumarize.all, "Abundance", "Genus", "Site"))
+```
+
+We compared the obtained genera with Gap condition from Senegal and Spain (supplementary material III and IV respectively).   
+  
+**Senegal**
+
+All the genera are within Senegal Gap condition except with Reyranella, Pirellula, CCD24, and Bacteriap25 (see suplementary file III). However, when we performed a differential abundant analysis, we have found that some genera are differential more abundant under Understory condition with DESeq2 (Steroidobacter, Pir4_lineage, Nitrospira, and MND1) (see suplementary file III).
+
+**Spain**  
+There are some genera that are withing the samples of Spain Gap condition, however, there are others that are not, like Vicinamibacteraceae, Reyranella, Steroidobacter, Pirellula, Pir4_lineage, Nitrospira, MND1, Gemmata, CCD24, and bacteriap25. Moreover, Candidatus nitrocosmicus and TRAS3-20 genera are differentialy more abundant in Understory condition with DESeq2 (see suplementary file IV).
+
+**Conclusion**
+There are some genera that are only available in Understory condition in all samples from both countries: Reyranella, Pirellula, CCD24, and Bacteriap25. Moreover, Steroidobacter, Pir4_lineage, Nitrospira, and MND1 are not found in Spain Gap condition, and they are differentialy mor abundant in Senegal Understory condition than in Gap.  
+   
+# Analysis of the Taxa within all samples except 1   
+
+We want to analyse the genera which are withing all the samples except one.
+
+## Count the number of Taxa per experimental conditions
+
+
+**At Genus level:**
+
+```{r Genus-1Samples}
+#remove Genus not in all samples except 1
+ps.genus.90_samples <- prune_taxa(rowSums(otu_table(ps.genus) != 0) >= ncol(otu_table(ps.genus)) - 1, ps.genus)
+genus_l <- get_taxa_unique(ps.genus.90_samples, taxonomic.rank="Genus")
+#Obtain all the genera
+genus_l <- get_taxa_unique(ps.genus.90_samples, taxonomic.rank="Genus")
+#remove unasigned genera
+genus_to_remove <- c(NA, "uncultured")
+genus_l <- genus_l[!genus_l %in% genus_to_remove]
+ps.genus.90 <- subset_taxa(ps.genus.90_samples, Genus %in% genus_l)
+
+genus_df.90 <- psmelt(ps.genus.90)
+
+#Remove abundance 0
+genus_df.90 <- genus_df.90[!genus_df.90$Abundance == 0,] 
+genus_sumarize.90 <- genus_df.90 %>%  group_by(Site, Genus) %>% 
+  summarise(Abundance=mean(Abundance, na.rm=TRUE), sd=sd(Abundance, na.rm=TRUE))
+
+#Print number of Genera
+cat("Genera Number= ", length(unique(genus_df.90$Genus)))
+
+```
+
+## Composition barplots 
+
+### Heatmap Abundance per sample
+
+With this plot we want to see the microbial composition in all samples except 1 and ensure that the ASVs are within all samples en each  experiment group except one. Moreover, we can see if there is any difference in the abundance of the ASVs in the different experimental conditions.
+
+**At Genus level**
+
+```{r AbundancePerSampleHeatmapGenus-1Samples, fig.cap="Heatmap comparing abundance of genera across experimental groups. Color gradients represents the abundance. Each row corresponds to a genus, while each column represents a sample grouped by experimental condition."}
+
+ggplotly(plot_abundance_heatmap(genus_df.90, "Abundance", "Genus", "Sample") + facet_wrap(~Site, scales = "free_x"))
+```
+
+### Heatmap Abundance per experimental condition
+
+With this plot we want to see the differences in the abundance of the taxa in the different experiment group.
+
+**At Genus level**
+
+```{r AbundanceHeatmapGenus-1Samples, fig.cap="Heatmap comparing abundance of genera across experimental groups. Color gradients represents the abundance. Each row corresponds to a Genus, while each column represents an experimental group, facilitating the comparison of genus distribution and abundance patterns across groups."}
+
+ggplotly(plot_abundance_heatmap(genus_sumarize.90, "Abundance", "Genus", "Site"))
+```
+
+Allowing that the genera can be missed in one sample, we were able to obtain some additional genera. Then, we compared the obtained genera with Gap condition from Senegal and Spain.   
+
+**Senegal**  
+Some genera were found in Senegal Gap condition, except Reynarella, Nitrososphaeraceae, CCD24, Cadidatus Alyososphaera, and A4b. After performed a differential abundant analysis we found that there are some genera that are more abundant under Understory condition, the previous genera and new ones: Steroidobacter, Nitrospira, Pir4_lineage, MND1, bacteriap25, and Acidibacter. 
+
+**Spain**  
+There are some genera that are withing the samples of Spain Gap condition, however, there are others that are not, like Vicinamibacteraceae, Subgroup-17, Subgroup-10, Steroidobacter, SH-PL14, Reynarella, Phenylobacterium, Nocardioides, Nitrososphaeraceae, Mycobacterium, MND1, Geodermatophilus, Flavitalea, Flavisolibacter, CCD24, Acidibacter, A4b, and 67-14. Moreover, Candidatus nitrocosmicus genus is differential more abundant under Understory condition (see suplementary file IV).  
+  
+However, of those genera Geodermatophilus is differentially more abundant in Senegal Gap condition than at Understory condition.
+
+# Conclusion
+
+If we allow that one sample can have the missing genera, we have found that Reynarella, Nitrososphaeraceae, CCD24, and A4b found under Understory condition in both countries (Senegal and Spain). Which may suggest a co-evolution process. Moreover, there are some genera that are not found under Spain Gap condition, but are differentially more abundant under Senegal Understory conditions than under Gap condition: MND1, Acidibacter, and Steroidobacter.
