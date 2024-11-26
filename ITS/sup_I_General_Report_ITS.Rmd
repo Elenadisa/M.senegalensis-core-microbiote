@@ -25,16 +25,9 @@ library(qiime2R)
 library(ggplot2)
 library(ggpubr)
 library(ggVennDiagram)
-library(gridExtra) 
 library(kableExtra)
 library(dplyr)
 library(magrittr)
-library(DESeq2)
-library(metagenomeSeq)
-library(microeco)
-library(file2meco)
-library(NetCoMi)
-library(Wrench)
 library(plotly)
 ```
 
@@ -303,6 +296,72 @@ phylum_count_df <- phylum_count_sample_df %>%
 
 kable(phylum_count_df, row.names = FALSE, caption = "Number of Phylum identified per experimental condition. The table presents the total number of Phylum detected in each experimental condition (Understory vs Gap), without considering their abundances. This provides an overview of the taxonomic diversity present in each condition based solely on the presence of Phylum.")
 ```
+  
+## Composition Plot
+
+A composition plot of an amplicon typically refers to a graphical representation used to visualize the abundance or distribution of the microorganisms community at a taxonomic level.  
+
+### Phylum Pie Chart
+
+```{r StackedAbundancePhylum, fig.width=10, fig.cap="Phylum Abundance"}
+
+phylum_sumarize <- phylum_df %>%  group_by(Site, INorOUT, Phylum) %>% 
+  summarise(Abundance_mean=mean(Abundance, na.rm=TRUE), sd=sd(Abundance, na.rm=TRUE)) 
+phylum_sumarize <- phylum_sumarize[!phylum_sumarize$Abundance_mean == 0,]
+
+ggplot(phylum_sumarize, aes(x="", y=Abundance_mean, fill=Phylum)) +
+  geom_bar(stat="identity", width=1) +
+  geom_col(width = 1, color = 1) +
+  theme_void()+ 
+  coord_polar("y", start=0)  + facet_wrap(Site~INorOUT, scales = "free")
+
+```
+
+### Top 20 Genus
+
+```{r TopGenus}
+ps.genus1 <- ps.genus
+ps.genus1@phy_tree <- NULL
+#Obtain Spain in top 20 genera
+ps.spain.in <- subset_samples(ps.genus1, Site %in% "Spain" & INorOUT %in% "Understory" )
+top.spain.in <- top_taxa(ps.spain.in, n = 20)
+ps.top.spain.in <- prune_taxa(top.spain.in, ps.spain.in)
+
+#Obtain Spain out top 20 genera
+ps.spain.out <- subset_samples(ps.genus1, Site %in% "Spain" & INorOUT %in% "Gap" )
+top.spain.out <- top_taxa(ps.spain.out, n = 20)
+ps.top.spain.out <- prune_taxa(top.spain.out, ps.spain.out)
+
+#Obtain Senegal in top 20 genera
+ps.senegal.in <- subset_samples(ps.genus1, Site %in% "Senegal" & INorOUT %in% "Understory" )
+top.senegal.in <- top_taxa(ps.senegal.in, n = 20)
+ps.top.senegal.in <- prune_taxa(top.senegal.in, ps.senegal.in)
+
+#Obtain Senegal out top 20 genera
+ps.senegal.out <- subset_samples(ps.genus1, Site %in% "Senegal" & INorOUT %in% "Gap" )
+top.senegal.out <- top_taxa(ps.senegal.out, n = 20)
+ps.top.senegal.out <- prune_taxa(top.senegal.out, ps.senegal.out)
+
+ps.top.genus <- merge_phyloseq(ps.top.spain.in, 
+                               ps.top.spain.out, 
+                               ps.top.senegal.in, 
+                               ps.top.senegal.out)
+#Create a dataframe from phyloseq object
+df_genus_top <- psmelt(ps.top.genus)
+df_genus_top <- df_genus_top[!df_genus_top$Abundance == 0,]
+names(df_genus_top)[3] <- paste("Abundance")
+
+#Calculate the mean and sd of the abundance per Genus, site and experimental condition
+top_genus_sumarize <- df_genus_top %>%  group_by(Site, INorOUT, Genus) %>% 
+  summarise(Abundance=mean(Abundance, na.rm=TRUE), sd=sd(Abundance, na.rm=TRUE))
+```
+
+
+```{r AbunByTopGenus, fig.height=8, fig.cap="Abundance of the top 20 mosta abundant genera"}
+plot_abundance_by_taxa(top_genus_sumarize, "Genus", "Abundance", "INorOUT") + facet_wrap(~Site, ncol=1, scales = "free")
+
+```
+
 
 ## Alpha Diversity
   
