@@ -102,16 +102,16 @@ To compile the HTML report in a command line use the followin command:
 
 ```{bash }
 #for 16S analysis
-Rscript rmarkdown::render("sup_I_General_Report_16S.Rmd")
-Rscript rmarkdown::render("sup_II_understory_16S.Rmd")
-Rscript rmarkdown::render("sup_III_senegal_16S.Rmd")
-Rscript rmarkdown::render("sup_IV_spain_16S.Rmd")
+Rscript -e "rmarkdown::render("sup_I_General_Report_16S.Rmd")"
+Rscript -e "rmarkdown::render("sup_II_understory_16S.Rmd")"
+Rscript -e "rmarkdown::render("sup_III_senegal_16S.Rmd")"
+Rscript -e "rmarkdown::render("sup_IV_spain_16S.Rmd")"
 
 #for ITS analysis
-Rscript rmarkdown::render("sup_I_General_Report_ITS.Rmd")
-Rscript rmarkdown::render("sup_II_understory_ITS.Rmd")
-Rscript rmarkdown::render("sup_III_senegal_ITS.Rmd")
-Rscript rmarkdown::render("sup_IV_spain_ITS.Rmd")
+Rscript -e "rmarkdown::render("sup_I_General_Report_ITS.Rmd")"
+Rscript -e "rmarkdown::render("sup_II_understory_ITS.Rmd")"
+Rscript -e "rmarkdown::render("sup_III_senegal_ITS.Rmd")"
+Rscript -e "rmarkdown::render("sup_IV_spain_ITS.Rmd")"
 ```
 
 Do not forget to set the path for the functions.R file before to compile the reports. Moreover, you need to excute the reports in 16S or ITS directory in order to have QIIME2 outputs accesible for the reports. In case you customize QIIME2 output modify the path to the files needed in the reports templates.  
