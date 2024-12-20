@@ -1,5 +1,5 @@
 ---
-title: "senegal vs Spain Understory Analysis ITS"
+title: "Senegal vs Spain Understory Analysis ITS"
 author: "Elena D. Díaz Santiago"
 date: "2024-10-08"
 output: html_document
@@ -144,7 +144,7 @@ ggplotly(plot_abundance_heatmap(phylum_df.all, "Abundance", "Phylum", "Sample") 
 
 **At Genus level**
 
-```{r AbundancePerSampleHeatmapGenusAllSamples, fig.cap="Heatmap comparing abundance of genera across experimental groups. Color gradients represents the abundance. Each row corresponds to a genus, while each column represents a sample grouped by experimental condition."}
+```{r AbundancePerSampleHeatmapGenusAllSamples, fig.width=8, fig.cap="Heatmap comparing abundance of genera across experimental groups. Color gradients represents the abundance. Each row corresponds to a genus, while each column represents a sample grouped by experimental condition."}
 
 ggplotly(plot_abundance_heatmap(genus_df.all, "Abundance", "Genus", "Sample") + facet_wrap(~Site, scales = "free_x"))
 ```
@@ -217,7 +217,7 @@ With this plot we want to see the microbial composition in all samples except 1 
 
 **At Genus level**
 
-```{r AbundancePerSampleHeatmapGenus-1Samples, fig.cap="Heatmap comparing abundance of genera across experimental groups. Color gradients represents the abundance. Each row corresponds to a genus, while each column represents a sample grouped by experimental condition."}
+```{r AbundancePerSampleHeatmapGenus-1Samples, fig.width =8, fig.cap="Heatmap comparing abundance of genera across experimental groups. Color gradients represents the abundance. Each row corresponds to a genus, while each column represents a sample grouped by experimental condition."}
 
 ggplotly(plot_abundance_heatmap(genus_df.90, "Abundance", "Genus", "Sample") + facet_wrap(~Site, scales = "free_x"))
 ```

@@ -1,5 +1,5 @@
 ---
-title: "senegal vs Spain Understory Analysis 16S"
+title: "Senegal vs Spain Understory Analysis 16S"
 author: "Elena D. Díaz Santiago"
 date: "2024-10-08"
 output: html_document
@@ -141,7 +141,7 @@ With this plot we want to see the microbial composition in all samples and ensur
 
 ```{r AbundancePerSampleHeatmapPhylymAllSamples, fig.cap="Heatmap comparing the abundance of phyla across experimental groups. Color gradients represents the abundance. Each row corresponds to a phylum, while each column represents a sample grouped by experimental condition."}
 
-ggplotly(plot_abundance_heatmap(phylum_df.all, "Abundance", "Phylum", "Sample") + facet_wrap(~Site, scales = "free_x"))
+ggplotly(plot_abundance_heatmap(phylum_df.all, "Abundance", "Phylum", "Sample") + facet_wrap(~Site, scales = "free_x")) 
 ```
 
 **At Genus level**
@@ -166,7 +166,7 @@ ggplotly(plot_abundance_heatmap(phylum_sumarize.all, "Abundance", "Phylum", "Sit
 
 ```{r AbundanceHeatmapGenusINOUT, fig.cap="Heatmap comparing abundance of genera across experimental groups. Color gradients represents the abundance. Each row corresponds to a Genus, while each column represents an experimental group, facilitating the comparison of genus distribution and abundance patterns across groups."}
 
-ggplotly(plot_abundance_heatmap(genus_sumarize.all, "Abundance", "Genus", "Site"))
+ggplotly(plot_abundance_heatmap(genus_sumarize.all, "Abundance", "Genus", "Site")) 
 ```
 
 We compared the obtained genera with Gap condition from Senegal and Spain (supplementary material III and IV respectively).   
@@ -221,9 +221,9 @@ With this plot we want to see the microbial composition in all samples except 1 
 
 **At Genus level**
 
-```{r AbundancePerSampleHeatmapGenus-1Samples, fig.cap="Heatmap comparing abundance of genera across experimental groups. Color gradients represents the abundance. Each row corresponds to a genus, while each column represents a sample grouped by experimental condition."}
+```{r AbundancePerSampleHeatmapGenus-1Samples, fig.height=8, fig.cap="Heatmap comparing abundance of genera across experimental groups. Color gradients represents the abundance. Each row corresponds to a genus, while each column represents a sample grouped by experimental condition."}
 
-ggplotly(plot_abundance_heatmap(genus_df.90, "Abundance", "Genus", "Sample") + facet_wrap(~Site, scales = "free_x"))
+ggplotly(plot_abundance_heatmap(genus_df.90, "Abundance", "Genus", "Sample") + facet_wrap(~Site, scales = "free_x")) 
 ```
 
 ### Heatmap Abundance per experimental condition
@@ -232,7 +232,7 @@ With this plot we want to see the differences in the abundance of the taxa in th
 
 **At Genus level**
 
-```{r AbundanceHeatmapGenus-1Samples, fig.cap="Heatmap comparing abundance of genera across experimental groups. Color gradients represents the abundance. Each row corresponds to a Genus, while each column represents an experimental group, facilitating the comparison of genus distribution and abundance patterns across groups."}
+```{r AbundanceHeatmapGenus-1Samples, fig.height=8, fig.cap="Heatmap comparing abundance of genera across experimental groups. Color gradients represents the abundance. Each row corresponds to a Genus, while each column represents an experimental group, facilitating the comparison of genus distribution and abundance patterns across groups."}
 
 ggplotly(plot_abundance_heatmap(genus_sumarize.90, "Abundance", "Genus", "Site"))
 ```
