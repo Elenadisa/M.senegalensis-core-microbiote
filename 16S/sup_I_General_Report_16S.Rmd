@@ -434,7 +434,7 @@ spain.tb$Site <- rep("Spain", nrow(physeq.spain@sam_data))
 kable(spain.tb)
 ```
 
-The alpha diversity between both experimental conditions is significant with both indices with the Kruskal wallys test and a p-value adjustment with BH. This indicates that within each group or condition, the communities have different diversity in terms of the number of species or relative abundance. In other words, there are some differences in the quantity or abundance of species within each condition.   
+The alpha diversity between both experimental conditions is not significant with both indices with the Kruskal wallys test and a p-value adjustment with BH. This indicates that within each group or condition, the communities have not different diversity in terms of the number of species or relative abundance. In other words, there are not differences in the quantity or abundance of species within each condition.    
   
 ### Senegal Understory vs Spain Understory   
 
@@ -454,7 +454,27 @@ in.tb$INorOUT <- rep("Understory", nrow(physeq.in@sam_data))
 kable(in.tb)
 ```
 
-The alpha diversity between both experimental conditions is significant  with both indices with the Kruskal wallys test and a p-value adjustment with BH. This indicates that within each group or condition, the communities have different diversity in terms of the number of species or relative abundance. In other words, there are some differences in the quantity or abundance of species within each condition.  
+The alpha diversity between both experimental conditions is significant  with both indices with the Kruskal wallys test and a p-value adjustment with BH. This indicates that within each group or condition, the communities have different diversity in terms of the number of species or relative abundance. In other words, there are some differences in the quantity or abundance of species within each condition.
+
+### Senegal Gap vs Spain Gap   
+
+
+```{r AlphaDiversityGap, fig.width=8, fig.height=6}
+#Gap data
+physeq.out <- subset_samples(physeq.10, INorOUT == "Gap")
+physeq.out <- prune_taxa(taxa_sums(physeq.out) > 1, physeq.out)
+
+#OBTAIN ALPHA DIVERSITY PLOT
+alpha_diversity_plot(physeq.out, "Site", metrics, my_comparisons, stat_metrics, asterisk = FALSE, "Gap")
+
+#alpha diversity table
+out.tb <- estimate_richness(physeq.out, measures=metrics)
+out.tb$Site <- physeq.out@sam_data$Site
+out.tb$INorOUT <- rep("Gap", nrow(physeq.out@sam_data))
+kable(out.tb)
+```
+
+The alpha diversity between both experimental conditions is significant for Shannon Index, but not with Simpson with the Kruskal wallys test and a p-value adjustment with BH. This indicates that within each group or condition, the communities may have different diversity in terms of the number of species or relative abundance. In other words, there are some differences in the quantity or abundance of species within each condition.  
 
 ## Beta Diversity
 
@@ -511,6 +531,12 @@ pairwise_bray$`Spain_Understory_vs_Spain_Gap`
   
 ```{r BraycurtisPERMANOVAUnderstory}
 pairwise_bray$`Spain_Understory_vs_Senegal_Understory`
+```
+
+**Pairwise Gap**  
+  
+```{r BraycurtisPERMANOVAGap}
+pairwise_bray$`Spain_Gap_vs_Senegal_Gap`
 ```
 
 ### POST HOC
