@@ -453,6 +453,26 @@ kable(in.tb)
 
 The alpha diversity between both experimental conditions is significant  with both indices with the Kruskal wallys test and a p-value adjustment with BH. This indicates that within each group or condition, the communities have different diversity in terms of the number of species or relative abundance. In other words, there are some differences in the quantity or abundance of species within each condition.  
 
+### Senegal Gap vs Spain Gap   
+
+
+```{r AlphaDiversityGap, fig.width=8, fig.height=6}
+#Gap data
+physeq.out <- subset_samples(physeq.10, INorOUT == "Gap")
+physeq.out <- prune_taxa(taxa_sums(physeq.out) > 1, physeq.out)
+
+#OBTAIN ALPHA DIVERSITY PLOT
+alpha_diversity_plot(physeq.out, "Site", metrics, my_comparisons, stat_metrics, asterisk = FALSE, "Gap")
+
+#alpha diversity table
+out.tb <- estimate_richness(physeq.out, measures=metrics)
+out.tb$Site <- physeq.out@sam_data$Site
+out.tb$INorOUT <- rep("Gap", nrow(physeq.out@sam_data))
+kable(out.tb)
+```
+
+The alpha diversity between both experimental conditions is significant for Shannon Index, but not with Simpson with the Kruskal wallys test and a p-value adjustment with BH. This indicates that within each group or condition, the communities may have different diversity in terms of the number of species or relative abundance. In other words, there are some differences in the quantity or abundance of species within each condition.  
+
 ## Beta Diversity
 
 Beta diversity measures the differences in species composition between communities or samples. In other words, it assesses how similar or different communities are from each other in terms of their biological composition. Just like with alpha diversity, there are also various metrics that can be used to measure beta diversity:  
@@ -514,6 +534,13 @@ pairwise_bray$`Spain_Understory_vs_Spain_Gap`
 pairwise_bray$`Spain_Understory_vs_Senegal_Understory`
 ```
     
+**Pairwise Gap**  
+  
+```{r BraycurtisPERMANOVAGap}
+pairwise_bray$`Spain_Gap_vs_Senegal_Gap`
+
+```
+  
 ### POST HOC  
   
 ```{r BraycurtisDistancePostHoc}
