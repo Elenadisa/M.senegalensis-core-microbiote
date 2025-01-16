@@ -380,12 +380,13 @@ plot_abundance_by_taxa(top_genus_sumarize, "Genus", "Abundance", "INorOUT") + fa
   
 Alpha diversity refers to the number of species or the diversity of a community in a single sample. It can be measured using various indices:  
   
+-**Chao**: Measures species richness, including both observed and undetected species, by estimating the number of species likely present in a community based on the frequency of rare species.  
 -**Shannon**: Considers both species richness and relative abundance (or evenness). A high index value indicates greater richness as well as a more uniform distribution of species. If all species have similar abundances, the value is higher.  
 -**Simpson**: Also combines richness and relative abundance but gives more weight to the most abundant species. It is expressed as the probability that two randomly selected individuals belong to the same species. Lower values indicate higher diversity (lower probability that two individuals are from the same species). Higher values indicate lower diversity (a dominant species). If a species is extremely dominant in a community, the Simpson index will be high.  
 
 ```{r prepare data}
 #STABLISH WHICH ALPHA DIVERSITY METRICS DO YOU WANT TO CALCULATE
-metrics <- c("Shannon", "Simpson")
+metrics <- c("Chao1","Shannon", "Simpson")
 
 #STABLIS THE COMPARISONS BETWEEN GROUPS DO YOU WANT TO CALCULATE
 my_comparisons <-list(c("Understory", "Gap"))
