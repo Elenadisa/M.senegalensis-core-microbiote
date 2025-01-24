@@ -25,17 +25,13 @@ library(qiime2R)
 library(ggplot2)
 library(ggpubr)
 library(ggVennDiagram)
-library(gridExtra) 
 library(kableExtra)
+library(pander)
 library(dplyr)
 library(magrittr)
-library(DESeq2)
-library(metagenomeSeq)
-library(microeco)
-library(file2meco)
-library(NetCoMi)
-library(Wrench)
 library(plotly)
+library(VennDiagram)
+library(multcompView)
 ```
 
 ```{r echo=FALSE}
@@ -222,16 +218,22 @@ genus_count_sample_df$INorOUT <- physeq.clean@sam_data$INorOUT
 
 #ANOVA
 anova <- aov(Genus_nb ~ Site * INorOUT, data = genus_count_sample_df)
-summary(anova)
+pander(summary(anova))
 
 #tukey multiple comparison test (ANOVA post hoc)
 tukey <- TukeyHSD(anova)
-
+letters <- multcompLetters(tukey$`Site:INorOUT`[, "p adj"])$Letters
+letters <- as.data.frame(letters)
+new_cols <- do.call(rbind, strsplit(rownames(letters), ":")) 
+letters$Site <- new_cols[,1]
+letters$INorOUT <- new_cols[,2]
 
 #Count the number of Genera per and experimental group
 genus_count_df <- genus_count_sample_df %>%
   group_by(Site, INorOUT) %>%
   summarise(Genus_mean = mean(Genus_nb), SD = sd(Genus_nb))
+
+genus_count_df <- merge(genus_count_df, letters, by.x = c("Site", "INorOUT"), by.y = c("Site", "INorOUT"))
 
 kable(genus_count_df, row.names = FALSE, caption = "Number of genera identified per experimental condition. The table presents the total number of genera detected in each experimental condition (Understory vs Gap), without considering their abundances. This provides an overview of the taxonomic diversity present in each condition based solely on the presence of genera.")
 ```
@@ -262,16 +264,23 @@ family_count_sample_df$INorOUT <- physeq.clean@sam_data$INorOUT
 
 #ANOVA
 anova <- aov(Family_nb ~ Site * INorOUT, data = family_count_sample_df)
-summary(anova)
+pander(summary(anova))
 
 #tukey multiple comparison test (ANOVA post hoc)
 tukey <- TukeyHSD(anova)
+letters <- multcompLetters(tukey$`Site:INorOUT`[, "p adj"])$Letters
+letters <- as.data.frame(letters)
+new_cols <- do.call(rbind, strsplit(rownames(letters), ":")) 
+letters$Site <- new_cols[,1]
+letters$INorOUT <- new_cols[,2]
 
 
 #Count the number of genes per and experimental group
 family_count_df <- family_count_sample_df %>%
   group_by(Site, INorOUT) %>%
   summarise(Family_mean = mean(Family_nb), SD = sd(Family_nb))
+
+family_count_df <- merge(family_count_df, letters, by.x = c("Site", "INorOUT"), by.y = c("Site", "INorOUT"))
 
 kable(family_count_df, row.names = FALSE, caption = "Number of families identified per experimental condition. The table presents the total number of families detected in each experimental condition (Understory vs Gap), without considering their abundances. This provides an overview of the taxonomic diversity present in each condition based solely on the presence of families.")
 ```
@@ -294,15 +303,22 @@ phylum_count_sample_df$INorOUT <- physeq.clean@sam_data$INorOUT
 
 #ANOVA
 anova <- aov(Phylum_nb ~ Site * INorOUT, data = phylum_count_sample_df)
-summary(anova)
+pander(summary(anova))
 
 #tukey multiple comparison test (ANOVA post hoc)
 tukey <- TukeyHSD(anova)
+letters <- multcompLetters(tukey$`Site:INorOUT`[, "p adj"])$Letters
+letters <- as.data.frame(letters)
+new_cols <- do.call(rbind, strsplit(rownames(letters), ":")) 
+letters$Site <- new_cols[,1]
+letters$INorOUT <- new_cols[,2]
 
 #Mean and SD Genera number by site
 phylum_count_df <- phylum_count_sample_df %>%
   group_by(Site, INorOUT) %>%
   summarise(Phylum_mean = mean(Phylum_nb), SD = sd(Phylum_nb))
+
+phylum_count_df <- merge(phylum_count_df, letters, by.x = c("Site", "INorOUT"), by.y = c("Site", "INorOUT"))
 
 kable(phylum_count_df, row.names = FALSE, caption = "Number of Phylum identified per experimental condition. The table presents the total number of Phylum detected in each experimental condition (Understory vs Gap), without considering their abundances. This provides an overview of the taxonomic diversity present in each condition based solely on the presence of Phylum.")
 ```
@@ -505,7 +521,7 @@ meta <- data.frame(sample_data(physeq.10))
 ```{r BraycurtisPERMANOVAllSamples}
 bray_permanova <- adonis2(bray_distance ~ SampleType, data = meta, permutations = 999, method = distance)
 capture.output(bray_permanova, file = "permanova_16S_braydistance.txt")
-bray_permanova
+pander(bray_permanova)
 ```
   
 Now a pairwise PERMANOVA is performed:  
@@ -516,7 +532,7 @@ Now a pairwise PERMANOVA is performed:
 ```{r BraycurtisPERMANOVASenegal}
 #pairwase adonis
 pairwise_bray <- pairwise.adonis2(bray_distance ~ SampleType, data = meta)
-pairwise_bray$`Senegal_Understory_vs_Senegal_Gap`
+pander(pairwise_bray$`Senegal_Understory_vs_Senegal_Gap`)
 
 ```
   
@@ -524,7 +540,7 @@ pairwise_bray$`Senegal_Understory_vs_Senegal_Gap`
   
 ```{r BraycurtisPERMANOVASpain}
 #pairwase adonis
-pairwise_bray$`Spain_Understory_vs_Spain_Gap`
+pander(pairwise_bray$`Spain_Understory_vs_Spain_Gap`)
 ```
   
   
@@ -532,13 +548,13 @@ pairwise_bray$`Spain_Understory_vs_Spain_Gap`
   
 ```{r BraycurtisPERMANOVAUnderstory}
 #pairwase adonis
-pairwise_bray$`Spain_Understory_vs_Senegal_Understory`
+pander(pairwise_bray$`Spain_Understory_vs_Senegal_Understory`)
 ```
     
 **Pairwise Gap**  
   
 ```{r BraycurtisPERMANOVAGap}
-pairwise_bray$`Spain_Gap_vs_Senegal_Gap`
+pander(pairwise_bray$`Spain_Gap_vs_Senegal_Gap`)
 
 ```
   
@@ -547,9 +563,9 @@ pairwise_bray$`Spain_Gap_vs_Senegal_Gap`
 ```{r BraycurtisDistancePostHoc}
 #Checking the homogeneity condition
 homogeneity_bray_site <- permutest(betadisper(bray_distance, c(meta$Site)), pairwise = TRUE)
-homogeneity_bray_site
+pander(homogeneity_bray_site$tab)
 homogeneity_bray_inorout <- permutest(betadisper(bray_distance, c(meta$INorOUT)), pairwise = TRUE)
-homogeneity_bray_inorout
+pander(homogeneity_bray_inorout$tab)
 
 #create label for the plots
 bp_pvalue <- paste("P-value", bray_permanova$`Pr(>F)`[1])
