@@ -29,6 +29,12 @@ library(kableExtra)
 library(pander)
 library(dplyr)
 library(magrittr)
+library(DESeq2)
+library(metagenomeSeq)
+library(microeco)
+library(file2meco)
+library(NetCoMi)
+library(Wrench)
 library(plotly)
 library(VennDiagram)
 library(multcompView)
@@ -274,7 +280,6 @@ new_cols <- do.call(rbind, strsplit(rownames(letters), ":"))
 letters$Site <- new_cols[,1]
 letters$INorOUT <- new_cols[,2]
 
-
 #Count the number of genes per and experimental group
 family_count_df <- family_count_sample_df %>%
   group_by(Site, INorOUT) %>%
@@ -403,6 +408,7 @@ Alpha diversity refers to the number of species or the diversity of a community 
 ```{r prepare data}
 #STABLISH WHICH ALPHA DIVERSITY METRICS DO YOU WANT TO CALCULATE
 metrics <- c("Chao1","Shannon", "Simpson")
+paper_metrics <- c("Chao1")
 
 #STABLIS THE COMPARISONS BETWEEN GROUPS DO YOU WANT TO CALCULATE
 my_comparisons <-list(c("Understory", "Gap"))
@@ -418,6 +424,9 @@ stat_metrics <- c("kruskal.test")
 physeq.senegal <- subset_samples(physeq.10, Site == "Senegal")
 physeq.senegal <- prune_taxa(taxa_sums(physeq.senegal) > 1, physeq.senegal)
 
+#Chao Plot
+alpha_fungi_senegal <- alpha_diversity_plot(physeq.senegal, "INorOUT", paper_metrics, my_comparisons, stat_metrics, asterisk = FALSE, " ") + theme(strip.text = element_blank(), axis.title.y=element_blank())
+
 #OBTAIN ALPHA DIVERSITY PLOT
 alpha_diversity_plot(physeq.senegal, "INorOUT", metrics, my_comparisons, stat_metrics, asterisk = FALSE, "Senegal")
 
@@ -426,6 +435,8 @@ senegal.tb <- estimate_richness(physeq.senegal, measures=metrics)
 senegal.tb$INorOUT <- physeq.senegal@sam_data$INorOUT
 senegal.tb$Site <- rep("Senegal", nrow(physeq.senegal@sam_data))
 kable(senegal.tb)
+
+
 ```
 
 The alpha diversity between both experimental conditions is not significant with the Kruskal wallys test and a p-value adjustment with BH. This indicates that within each group or condition, the communities have not different diversity in terms of the number of species or relative abundance. In other words, there are not differences in the quantity or abundance of species within each condition.  
@@ -437,6 +448,9 @@ The alpha diversity between both experimental conditions is not significant with
 #Spain data
 physeq.spain <- subset_samples(physeq.10, Site == "Spain")
 physeq.spain <- prune_taxa(taxa_sums(physeq.spain) > 1, physeq.spain)
+
+#Chao Plot
+alpha_fungi_spain <- alpha_diversity_plot(physeq.spain, "INorOUT", paper_metrics, my_comparisons, stat_metrics, asterisk = FALSE, " ") + theme(strip.text = element_blank(), axis.title.y=element_blank())
 
 #OBTAIN ALPHA DIVERSITY PLOT
 alpha_diversity_plot(physeq.spain, "INorOUT", metrics, my_comparisons, stat_metrics, asterisk = FALSE, "Spain")
@@ -458,6 +472,9 @@ The alpha diversity between both experimental conditions is significant  with bo
 physeq.in <- subset_samples(physeq.10, INorOUT == "Understory")
 physeq.in <- prune_taxa(taxa_sums(physeq.in) > 1, physeq.in)
 
+#Chao Plot
+alpha_fungi_under <- alpha_diversity_plot(physeq.in, "Site", paper_metrics, my_comparisons, stat_metrics, asterisk = FALSE, " ") + theme(strip.text = element_blank(), axis.title.y=element_blank())
+
 #OBTAIN ALPHA DIVERSITY PLOT
 alpha_diversity_plot(physeq.in, "Site", metrics, my_comparisons, stat_metrics, asterisk = FALSE, "Understory")
 
@@ -477,6 +494,9 @@ The alpha diversity between both experimental conditions is significant  with bo
 #Gap data
 physeq.out <- subset_samples(physeq.10, INorOUT == "Gap")
 physeq.out <- prune_taxa(taxa_sums(physeq.out) > 1, physeq.out)
+
+#Chao plot
+alpha_fungi_gap <- alpha_diversity_plot(physeq.out, "Site", paper_metrics, my_comparisons, stat_metrics, asterisk = FALSE, " ") + theme(strip.text = element_blank())
 
 #OBTAIN ALPHA DIVERSITY PLOT
 alpha_diversity_plot(physeq.out, "Site", metrics, my_comparisons, stat_metrics, asterisk = FALSE, "Gap")
@@ -581,7 +601,8 @@ A **significant PERMANOVA** indicates that there are significant differences in 
 method <- "PCoA"
 
 pcoa_bray <- betadiversity_analysis(physeq.10, method, distance)
-plot_distance(physeq.10, pcoa_bray, "INorOUT", shape="Site", elipse = TRUE) + annotate("text" ,x=0.2,y=0.43, label = bray_permanova_text, size = 5) 
+beta_fungi <- plot_distance(physeq.10, pcoa_bray, "INorOUT", shape="Site", elipse = TRUE) + annotate("text" ,x=0.2,y=0.43, label = bray_permanova_text, size = 5) 
+beta_fungi
 ```
 
 
@@ -646,8 +667,9 @@ lst1 <- list(Sen.Unde= senegal.in.genus_l,
             Spa.Unde= spain.in.genus_l,
             Spa.Gap= spain.out.genus_l)
 
-ggVennDiagram(lst1, label_alpha = 0, set_size = 6, label_size = 5) +  scale_fill_gradient(low = "#F4FAFE", high = "#4981BF") +
+ven_all_fungi <- ggVennDiagram(lst1, label_alpha = 0, set_size = 6, label_size = 5) +  scale_fill_gradient(low = "#F4FAFE", high = "#4981BF") +
   theme(legend.position = "none" ) + scale_x_continuous(expand = expansion(mult = .2)) 
+ven_all_fungi
 ```
   
 We can see that there are different genera that are shared by the different conditions.
@@ -657,8 +679,9 @@ We can see that there are different genera that are shared by the different cond
 lst2 <- list(Sen= senegal.in.genus_l,
             Spa= spain.in.genus_l)
 
-ggVennDiagram(lst2, label_alpha = 0, set_size = 6, label_size = 8) +  scale_fill_gradient(low = "#F4FAFE", high = "#4981BF") +
-  theme(legend.position = "none" ) + scale_x_continuous(expand = expansion(mult = .2)) 
+ven_under_fungi <- ggVennDiagram(lst2, label_alpha = 0, set_size = 6, label_size = 8) +  scale_fill_gradient(low = "#F4FAFE", high = "#4981BF") +
+  theme(legend.position = "none" ) + scale_x_continuous(expand = expansion(mult = .2))
+ven_under_fungi
 ```
   
 There are 16 genera in all samples of Spain and Senegal Understory conditions.
