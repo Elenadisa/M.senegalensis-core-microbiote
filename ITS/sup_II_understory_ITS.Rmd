@@ -1,7 +1,6 @@
 ---
 title: "Senegal vs Spain Understory Analysis ITS"
 author: "Elena D. Díaz Santiago"
-date: "2024-10-08"
 output: html_document
 ---
 
@@ -28,7 +27,7 @@ library(plotly)
 
 ```{r echo=FALSE}
 #load own functions
-source("C:/Users/elenad/Documents/proyectos/scripts/functions.R")
+source("../M.senegalensis-core-microbiote/functions.R")
 ```
 
 In this analysis we want to test Holobiont hypothesis by analysing the genus that are associated to *Maytenus senegalensis* by studing the common genus in understory in both countries, Senegal and Spain.  

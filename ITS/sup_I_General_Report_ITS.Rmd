@@ -1,7 +1,6 @@
 ---
 title: "General Report Analysis ITS"
 author: "Elena D. Díaz Santiago"
-date: "2024-10-08"
 output: html_document
 ---
 
@@ -42,7 +41,7 @@ library(multcompView)
 
 ```{r echo=FALSE}
 #load own functions
-source("C:/Users/elenad/Documents/proyectos/scripts/functions.R")
+source("../M.senegalensis-core-microbiote/functions.R")
 ```
 
 # Experimental design

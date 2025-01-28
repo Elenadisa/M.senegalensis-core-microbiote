@@ -11,6 +11,14 @@ To this end, we have collected different soil samples:
 
 This repository stores the code available to perform an amplicon analysis with QIIME2 and downstream analysis with R.  
 This code can be run in any Linux system. However, if you are a Windows user you need to run QIIME2 part in WSL.  
+
+## Clone the repository  
+
+Clone the repository M.senegalensis-core-microbiote and make the path accesible for functions file in all the reports at ITS and 16S directories:  
+
+```{r }
+source("../M.senegalensis-core-microbiote/functions.R")
+``` 
   
 ## Download QIIME2  
 This analysis was performed with QIIME2 2023.5 version. To install QIIME2 follow the [instructions](https://docs.qiime2.org/2023.5/install/index.html).  
@@ -61,16 +69,18 @@ install_github("jbisanz/qiime2R")
 ```
 
 ## Execution Details   
-Scripts for 16S and ITS analysis are available in the directory with its corresponding names. 
+
+Save your raw sequences in a directory named raw data. Scripts for 16S and ITS analyses are available in the directory with its corresponding name.  
+
 **1.** First you need to execute QIIME2. The scripts are available in qiime2_pipeline_16S/ITS directory. You need to execute the scripts in order:  
-- The fist script import the sequences in QIIME2 and execute cutadapt pluggin.  
-- The second script execute DADA2 plugin.  
-- The third script assing the taxonomy.  
-- The fourth script generate the phylogenetic tree.  
+- *1_import_qiime2_sequence.sh*:  import the sequences in QIIME2 and execute cutadapt pluggin.  
+- *2_dada2.sh*: execute DADA2 plugin.  
+- *3_assing_taxonomy.sh*: assing the taxonomy.  
+- *4_phylogeny.sh*: generate a rooted and unrooted phylogenetic trees.  
   
-**2.** Run Rmkardown template.  
-With QIIME2 output we can perform different analysis. The markdown template contains the code for downstream analysis and generates a report in HTML. The different reports has different purposes:  
-- *sup I General Report*: Generates the report for the general analysis. In which you can found quality control analysis and the differences between every experimental conditions.
+**2.** Run Rmkardown templates.  
+With QIIME2 output we can perform different analysis. The Rmarkdown template contains the code for downstream analysis and generates a report in HTML. The different reports has different purposes:  
+-*sup I General Report*: Generates the report for the general analysis. In which you can found quality control analysis and the differences between every experimental conditions.
 -*sup II understory:* Analyse the core microbiote of Maytenus shrub by comparing understory soil samples of Senegal and Spain.  
 -*sup III senegal:* Compare understory and gap soil samples from Senegal.  
 -*sup IV spain:* Compare understory and gap soil samples from Spain.  
