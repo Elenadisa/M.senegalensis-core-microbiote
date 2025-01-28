@@ -386,12 +386,12 @@ names(df_genus_top)[3] <- paste("Abundance")
 
 #Calculate the mean and sd of the abundance per Genus, site and experimental condition
 top_genus_sumarize <- df_genus_top %>%  group_by(Site, INorOUT, Genus) %>% 
-  summarise(Abundance=mean(Abundance, na.rm=TRUE), sd=sd(Abundance, na.rm=TRUE))
+  summarise(Absolute_Abundance=mean(Abundance, na.rm=TRUE), sd=sd(Abundance, na.rm=TRUE))
 ```
 
 
 ```{r AbunByTopGenus, fig.height=10, fig.cap="Abundance of the top 20 most abundant genera"}
-plot_abundance_by_taxa(top_genus_sumarize, "Genus", "Abundance", "INorOUT") + facet_wrap(~Site, ncol=1, scales = "free") + theme(strip.text = element_text(size = 14))
+plot_abundance_by_taxa(top_genus_sumarize, "Genus", "Abusolute_Abundance", "INorOUT") + facet_wrap(~Site, ncol=1, scales = "free") + theme(strip.text = element_text(size = 14))
 
 ```
 
