@@ -393,12 +393,33 @@ names(df_genus_top)[3] <- paste("Abundance")
 #Calculate the mean and sd of the abundance per Genus, site and experimental condition
 top_genus_sumarize <- df_genus_top %>%  group_by(Site, INorOUT, Genus) %>% 
   summarise(Absolute_Abundance=mean(Abundance, na.rm=TRUE), sd=sd(Abundance, na.rm=TRUE))
+
+#Calculate the mean and sd of the abundance per Genus, site and experimental condition
+top_genus_sumarize <- df_genus_top %>%  group_by(Site, INorOUT, Genus) %>% 
+  summarise(Absolute_Abundance=mean(Abundance, na.rm=TRUE), sd=sd(Abundance), .groups = "drop") 
+
+#Sort the genera Understory condition positive, Gap condition negative
+top_genus_sumarize_ordered <- top_genus_sumarize %>%
+  group_by(Site, INorOUT) %>%
+  mutate(Order = ifelse(INorOUT == "Understory", rank(Absolute_Abundance, ties.method = "first"), 
+                        -rank(Absolute_Abundance, ties.method = "first"))) %>%
+  ungroup()
+
+# Create a column to sort the genera according to each country
+top_genus_sumarize_ordered <- top_genus_sumarize_ordered %>%
+  mutate(Genus_microhabitat = paste(Genus, INorOUT, Site, sep = "_"))
+
+top_genus_sumarize_ordered <- top_genus_sumarize_ordered %>%
+  group_by(Site) %>%
+  mutate(Genus_microhabitat = fct_reorder(Genus_microhabitat, Order, .desc = TRUE)) %>%
+  ungroup()
 ```
 
 
-```{r AbunByTopGenus, fig.height=8, fig.cap="Abundance of the top 20 most abundant genera"}
-plot_abundance_by_taxa(top_genus_sumarize, "Genus", "Absolute_Abundance", "INorOUT") + facet_wrap(~Site, ncol=1, scales = "free") + theme(strip.text = element_text(size = 14))
-
+```{r AbunByTopGenus, fig.width = 19, fig.height=12, fig.cap="Abundance of the top 20 most abundant genera"}
+top_genus_bact <- plot_abundance_by_taxa(top_genus_sumarize_ordered, "Genus_microhabitat", "Absolute_Abundance", "INorOUT") + theme(strip.text = element_text(size = 20, face = "bold")) + scale_x_discrete(labels = function(x) gsub("_Understory_Senegal|_Understory_Spain|_Gap_Senegal|_Gap_Spain", "", x)) +  facet_wrap(~Site, scales = "free") +
+    ylab("Abundance") + xlab("Genus") 
+top_genus_bact
 ```
 
 ## Alpha Diversity
