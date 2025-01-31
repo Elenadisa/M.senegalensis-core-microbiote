@@ -63,7 +63,7 @@ physeq.clean <- prune_taxa(taxa_sums(physeq_wo_mock) > 1, physeq_wo_mock)
 Then, we obtain only Spain samples:  
   
 ```{r ObtainSpainSamples}
-ps.spain <- subset_samples(physeq.clean, Site == "Spain")
+ps.spain <- subset_samples(physeq.clean, Country == "Spain")
 #remove ASVs with a total abundance 1 in all samples
 physeq.spain.clean <- prune_taxa(taxa_sums(ps.spain) > 1, ps.spain)
 
@@ -103,7 +103,7 @@ genus_df.all <- psmelt(ps.genus.all)
 
 #Remove abundance 0
 genus_df.all <- genus_df.all[!genus_df.all$Abundance == 0,] 
-genus_sumarize.all <- genus_df.all %>%  group_by(INorOUT, Genus) %>% 
+genus_sumarize.all <- genus_df.all %>%  group_by(Microhabitat, Genus) %>% 
   summarise(Abundance=mean(Abundance, na.rm=TRUE), sd=sd(Abundance, na.rm=TRUE))
 
 #Print number of Genera
@@ -121,7 +121,7 @@ phylum_df.all <- psmelt(ps.phylum.all)
 
 #Remove abundance 0
 phylum_df.all <- phylum_df.all[!phylum_df.all$Abundance == 0,]
-phylum_sumarize.all <- phylum_df.all %>%  group_by(INorOUT, Phylum) %>% 
+phylum_sumarize.all <- phylum_df.all %>%  group_by(Microhabitat, Phylum) %>% 
   summarise(Abundance=mean(Abundance, na.rm=TRUE), sd=sd(Abundance, na.rm=TRUE))
 
 
@@ -138,14 +138,14 @@ With this plot we want to see the microbial composition in all samples and ensur
 
 ```{r AbundancePerSampleHeatmapPhylymAllSamples, fig.cap="Heatmap comparing relative abundance of phyla across experimental groups. Color gradients represents the abundance. Each row corresponds to a phylum, while each column represents a sample grouped by experimental condition."}
 
-ggplotly(plot_abundance_heatmap(phylum_df.all, "Abundance", "Phylum", "Sample") + facet_wrap(~INorOUT, scales = "free_x"))
+ggplotly(plot_abundance_heatmap(phylum_df.all, "Abundance", "Phylum", "Sample") + facet_wrap(~Microhabitat, scales = "free_x"))
 ```
 
 **At Genus level**
 
 ```{r AbundancePerSampleHeatmapGenusAllSamples, fig.cap="Heatmap comparing abundance of genera across experimental groups. Color gradients represents the abundance. Each row corresponds to a genus, while each column represents a sample grouped by experimental condition."}
 
-ggplotly(plot_abundance_heatmap(genus_df.all, "Abundance", "Genus", "Sample") + facet_wrap(~INorOUT, scales = "free_x"))
+ggplotly(plot_abundance_heatmap(genus_df.all, "Abundance", "Genus", "Sample") + facet_wrap(~Microhabitat, scales = "free_x"))
 ```
 
 
@@ -158,14 +158,14 @@ With this plot we want to see the differences in the abundance of the taxa in th
 
 ```{r AbundanceHeatmapPhylymINOUT, fig.cap="Heatmap comparing abundance of phyla across experimental groups. Color gradients represents the abundance. Each row corresponds to a phylum, while each column represents an experimental group, facilitating the comparison of phylum distribution and abundance patterns across groups."}
 
-ggplotly(plot_abundance_heatmap(phylum_sumarize.all, "Abundance", "Phylum", "INorOUT"))
+ggplotly(plot_abundance_heatmap(phylum_sumarize.all, "Abundance", "Phylum", "Microhabitat"))
 ```
 
 **At Genus level**
 
 ```{r AbundanceHeatmapGenusINOUT, fig.cap="Heatmap comparing abundance of genera across experimental groups. Color gradients represents the abundance. Each row corresponds to a Genus, while each column represents an experimental group, facilitating the comparison of genus distribution and abundance patterns across groups."}
 
-ggplotly(plot_abundance_heatmap(genus_sumarize.all, "Abundance", "Genus", "INorOUT"))
+ggplotly(plot_abundance_heatmap(genus_sumarize.all, "Abundance", "Genus", "Microhabitat"))
 ```
 
 ## Differential Abundance  
@@ -178,12 +178,12 @@ DESeq2 is both tools which assume that read counts follow a negative binomial di
   
 ```{r DESeqAll}
 #items to compare
-contrast <- c("INorOUT","Understory", "Gap")
+contrast <- c("Microhabitat","Understory", "Gap")
 #P.adjust threshold
 alpha <- 0.05 
 
 #create DESeq2 object
-ds.all <- phyloseq_to_deseq2(ps.genus.all, ~ INorOUT)
+ds.all <- phyloseq_to_deseq2(ps.genus.all, ~ Microhabitat)
 
 diagdds.all <-  DESeq(ds.all, 
                   test="Wald", 
@@ -215,7 +215,7 @@ lefse.all <- run_lefse(
     norm = "none",
     taxa_rank = "Genus",
     wilcoxon_cutoff = 0.05,
-    group = "INorOUT",
+    group = "Microhabitat",
     kw_cutoff = 0.05,
     lda_cutoff = 2
 )
@@ -251,7 +251,7 @@ genus_df.90 <- psmelt(ps.genus.90)
 
 #Remove abundance 0
 genus_df.90 <- genus_df.90[!genus_df.90$Abundance == 0,] 
-genus_sumarize.90 <- genus_df.90 %>%  group_by(INorOUT, Genus) %>% 
+genus_sumarize.90 <- genus_df.90 %>%  group_by(Microhabitat, Genus) %>% 
   summarise(Abundance=mean(Abundance, na.rm=TRUE), sd=sd(Abundance, na.rm=TRUE))
 
 #Print number of Genera
@@ -270,7 +270,7 @@ With this plot we want to see the microbial composition in all samples except 1 
 
 ```{r AbundancePerSampleHeatmapGenus-1Samples, fig.cap="Heatmap comparing relative abundance of genera across experimental groups. The heatmap visualizes the relative abundance of different genus for each experimental group, with color gradients represents the abundance. Each row corresponds to a genus, while each column represents a sample grouped by experimental condition."}
 
-ggplotly(plot_abundance_heatmap(genus_df.90, "Abundance", "Genus", "Sample") + facet_wrap(~INorOUT, scales = "free_x"))
+ggplotly(plot_abundance_heatmap(genus_df.90, "Abundance", "Genus", "Sample") + facet_wrap(~Microhabitat, scales = "free_x"))
 ```
 
 ### Heatmap Abundance per experimental condition
@@ -281,7 +281,7 @@ With this plot we want to see the differences in the abundance of the taxa in th
 
 ```{r AbundanceHeatmapGenus-1Samples, fig.cap="Heatmap comparing relative abundance of genera across experimental groups. The heatmap visualizes the relative abundance of different genera for each experimental group, with color gradients represents the abundance. Each row corresponds to a Genus, while each column represents an experimental group (Understory vs Gap), facilitating the comparison of genus distribution and abundance patterns across groups."}
 
-ggplotly(plot_abundance_heatmap(genus_sumarize.90, "Abundance", "Genus", "INorOUT"))
+ggplotly(plot_abundance_heatmap(genus_sumarize.90, "Abundance", "Genus", "Microhabitat"))
 ```
 
 ## Differential Abundance  
@@ -294,12 +294,12 @@ DESeq2 is both tools which assume that read counts follow a negative binomial di
   
 ```{r DESeq90}
 #items to compare
-contrast <- c("INorOUT","Understory", "Gap")
+contrast <- c("Microhabitat","Understory", "Gap")
 #P.adjust threshold
 alpha <- 0.05 
 
 #create DESeq2 object
-ds.90 <- phyloseq_to_deseq2(ps.genus.90, ~ INorOUT)
+ds.90 <- phyloseq_to_deseq2(ps.genus.90, ~ Microhabitat)
 
 diagdds.90 <-  DESeq(ds.90, 
                   test="Wald", 
@@ -331,7 +331,7 @@ lefse.90 <- run_lefse(
     norm = "none",
     taxa_rank = "Genus",
     wilcoxon_cutoff = 0.05,
-    group = "INorOUT",
+    group = "Microhabitat",
     kw_cutoff = 0.05,
     lda_cutoff = 2
 )

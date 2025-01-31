@@ -1,4 +1,4 @@
-SampleID	Shrub	INorOUT	Site
+SampleID	Shrub	Microhabitat	Country
 Sample1	E1	Understory	Spain
 Sample2	E2	Understory	Spain
 Sample3	E3	Understory	Spain
